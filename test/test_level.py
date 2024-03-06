@@ -97,12 +97,13 @@ class Terreno():
         self.ultima_altezza = ALTEZZA - 50
         self.genera_terreno_iniziale()
         self.portale = None
+        self.num_porzione_per_portale = random.randint(5, 9)
 
     def genera_portale(self):
-        # Decidi dopo quante porzioni generare il portale
-        if len(self.porzioni) > 5 and not self.portale:  # Ad esempio, dopo 5 porzioni
-            porzione = self.porzioni[-1]
-            self.portale = Portale(porzione.right + 200, porzione.top - 50)
+        # Genera il portale dopo la porzione specificata
+        porzione = self.porzioni[self.num_porzione_per_portale - 1]
+        # Posizioniamo il portale un po' oltre la porzione selezionata
+        self.portale = Portale(porzione.right + DISTANZA_ORIZZONTALE_MIN, porzione.top - 50)
 
     def genera_terreno_iniziale(self):
         larghezza_porz = random.randint(LARGHEZZA // 4, LARGHEZZA // 2)
@@ -111,8 +112,8 @@ class Terreno():
     def aggiorna(self):
         self.aggiungi_porzione_se_necessario()
         self.muovi_terreno_e_ostacoli()
-        # Assicurati di generare il portale solo dopo un numero sufficiente di porzioni
-        if len(self.porzioni) > 5 and not self.portale:  # Ad esempio, dopo 5 porzioni
+        # Verifica se è il momento di generare il portale
+        if not self.portale and len(self.porzioni) >= self.num_porzione_per_portale:
             self.genera_portale()
 
     def aggiungi_porzione_se_necessario(self):
