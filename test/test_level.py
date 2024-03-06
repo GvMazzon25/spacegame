@@ -14,6 +14,7 @@ NERO = (0, 0, 0)
 BLU = (0, 0, 255)
 VERDE = (0, 255, 0)
 ROSSO = (255, 0, 0)
+AZZURRO = (0, 255, 255)
 
 # Parametri configurabili
 VELOCITA_TERRENO = -5
@@ -39,15 +40,16 @@ class Giocatore(pygame.sprite.Sprite):
         self.verifica_collisione_con_terreno(terreno)
 
     def verifica_collisione_con_terreno(self, terreno):
-        for porzione in terreno.porzioni:
-            if self.rect.colliderect(porzione):
-                self.rect.bottom = porzione.top
-                self.velocita_y = 0
-                self.salti_rimanenti = 2
-                break
+        self.rect.y += 1  # Piccolo spostamento per la verifica collisione
+        collisioni = [porzione for porzione in terreno.porzioni if self.rect.colliderect(porzione)]
+        if collisioni:
+            self.rect.bottom = collisioni[0].top
+            self.velocita_y = 0
+            self.salti_rimanenti = 2
         else:
-            if self.rect.bottom >= ALTEZZA:
-                self.game_over()
+            if not any(self.rect.bottom <= porzione.bottom for porzione in terreno.porzioni):
+                self.game_over()  # Termina il gioco se cade nel vuoto
+        self.rect.y -= 1
 
     def salta(self):
         if self.salti_rimanenti > 0:
@@ -75,6 +77,18 @@ class Ostacolo(pygame.sprite.Sprite):
         superficie.blit(self.surf, self.rect)
 
 
+class Portale(pygame.sprite.Sprite):
+    class Portale(pygame.sprite.Sprite):
+        def __init__(self, x, y):
+            super().__init__()
+            self.surf = pygame.Surface((20, 100))  # Dimensioni del portale
+            self.surf.fill(AZZURRO)  # Imposta il colore a azzurro
+            self.rect = self.surf.get_rect(center=(x, y))
+
+        def disegna(self, superficie):
+            superficie.blit(self.surf, self.rect)
+
+
 # Classe Terreno
 class Terreno():
     def __init__(self):
@@ -82,6 +96,13 @@ class Terreno():
         self.ostacoli = []
         self.ultima_altezza = ALTEZZA - 50
         self.genera_terreno_iniziale()
+        self.portale = None
+
+    def genera_portale(self):
+        # Decidi dopo quante porzioni generare il portale
+        if len(self.porzioni) > 5 and not self.portale:  # Ad esempio, dopo 5 porzioni
+            porzione = self.porzioni[-1]
+            self.portale = Portale(porzione.right + 200, porzione.top - 50)
 
     def genera_terreno_iniziale(self):
         larghezza_porz = random.randint(LARGHEZZA // 4, LARGHEZZA // 2)
@@ -90,6 +111,9 @@ class Terreno():
     def aggiorna(self):
         self.aggiungi_porzione_se_necessario()
         self.muovi_terreno_e_ostacoli()
+        # Assicurati di generare il portale solo dopo un numero sufficiente di porzioni
+        if len(self.porzioni) > 5 and not self.portale:  # Ad esempio, dopo 5 porzioni
+            self.genera_portale()
 
     def aggiungi_porzione_se_necessario(self):
         while not self.porzioni or self.porzioni[-1].right < LARGHEZZA - DISTANZA_ORIZZONTALE_MAX:
@@ -102,22 +126,18 @@ class Terreno():
             self.genera_ostacolo_per_porzione(nuova_porzione)
 
     def calcola_nuova_altezza(self):
-        # Calcola una nuova altezza per la porzione di terreno entro il limite di salto
-        variazione_altezza = random.randint(-DIFFERENZA_ALTEZZA_MAX, DIFFERENZA_ALTEZZA_MAX)
-        nuova_altezza = max(min(self.ultima_altezza + variazione_altezza, ALTEZZA - 50), ALTEZZA - 50 - SALTO_MAX)
+        # Ampliamo la gamma di variazione dell'altezza
+        variazione_altezza = random.randint(-DIFFERENZA_ALTEZZA_MAX * 2, DIFFERENZA_ALTEZZA_MAX * 2)
+        nuova_altezza = max(min(self.ultima_altezza + variazione_altezza, ALTEZZA - 100), 100)
         self.ultima_altezza = nuova_altezza
         return nuova_altezza
 
     def genera_ostacolo_per_porzione(self, porzione):
-        # Decidi casualmente se generare un ostacolo sulla porzione di terreno
-        if random.choice([True, False]):
+        # Generiamo un ostacolo con maggior frequenza
+        if random.choice([True, True, True, False]):  # Aumenta la probabilità di generare un ostacolo
             posizione_ostacolo = random.choice(['sinistra', 'centro', 'destra'])
-            if posizione_ostacolo == 'sinistra':
-                x_ostacolo = porzione.x + porzione.width * 0.25
-            elif posizione_ostacolo == 'centro':
-                x_ostacolo = porzione.x + porzione.width * 0.5
-            else:  # 'destra'
-                x_ostacolo = porzione.x + porzione.width * 0.75
+            x_ostacolo = porzione.x + porzione.width * (
+                0.25 if posizione_ostacolo == 'sinistra' else 0.5 if posizione_ostacolo == 'centro' else 0.75)
             self.ostacoli.append(Ostacolo(x_ostacolo, porzione.top - 25))
 
     def muovi_terreno_e_ostacoli(self):
@@ -150,14 +170,26 @@ while True:
     giocatore.aggiorna(terreno)
     terreno.aggiorna()
 
-    # Verifica collisione con gli ostacoli
     for ostacolo in terreno.ostacoli:
         if giocatore.rect.colliderect(ostacolo.rect):
             giocatore.game_over()
 
+    # Gestione collisione con il portale
+    if terreno.portale and giocatore.rect.colliderect(terreno.portale.rect):
+        font = pygame.font.Font(None, 74)
+        testo = font.render("Livello superato", 1, (255, 255, 255))
+        testo_pos = testo.get_rect(centerx=schermo.get_width() / 2, centery=schermo.get_height() / 2)
+        schermo.fill(NERO)  # Pulisce lo schermo prima di disegnare il messaggio
+        schermo.blit(testo, testo_pos)
+        pygame.display.flip()
+        pygame.time.wait(3000)  # Aspetta 3 secondi prima di terminare
+        break  # Uscire dal ciclo di gioco, terminando pulitamente
+
     schermo.fill(NERO)
     terreno.disegna(schermo)
     giocatore.disegna(schermo)
+    if terreno.portale:
+        terreno.portale.disegna(schermo)
 
     pygame.display.flip()
     clock.tick(30)
