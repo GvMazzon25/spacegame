@@ -48,9 +48,11 @@ class Gioco:
             self.coin_manager.aggiorna()
             self.coin_manager.gestisci_collisioni(self.giocatore)
 
-            for ostacolo in self.terreno.ostacoli:
-                if self.giocatore.rect.colliderect(ostacolo.rect):
-                    self.giocatore.game_over()
+            cristalli_toccati = pygame.sprite.spritecollide(self.giocatore, self.terreno.cristalli, True)
+            for cristallo in cristalli_toccati:
+                self.giocatore.cambia_colore(cristallo.color)
+                if self.terreno.portale_fine:
+                    self.terreno.portale_fine.cambia_colore(self.giocatore.colore_corrente)
 
             # Gestione collisione con il portale
             if self.terreno.portale_fine and self.giocatore.rect.colliderect(self.terreno.portale_fine.rect):
@@ -89,10 +91,13 @@ class Giocatore(pygame.sprite.Sprite):
         super().__init__()
         self.gioco = gioco
         self.surf = pygame.Surface((50, 50))
-        self.surf.fill(self.gioco.BLU)
+        self.colore_corrente = self.surf.fill(self.gioco.BLU)
         self.rect = self.surf.get_rect(center=(self.gioco.LARGHEZZA // 8, self.gioco.ALTEZZA - 150))
         self.velocita_y = 1
         self.salti_rimanenti = 2
+
+    def cambia_colore(self, nuovo_colore):
+        self.colore_corrente = self.surf.fill(nuovo_colore)
 
     def aggiorna(self):
         self.velocita_y += 1  # Simula la gravità
@@ -136,12 +141,13 @@ class Giocatore(pygame.sprite.Sprite):
 
 
 # Classe Ostacolo
-class Ostacolo(pygame.sprite.Sprite):
-    def __init__(self, gioco, x, y):
+class Cristallo(pygame.sprite.Sprite):
+    def __init__(self, x, y):
         super().__init__()
-        self.gioco = gioco
-        self.surf = pygame.Surface((20, 50))
-        self.surf.fill(self.gioco.ROSSO)
+        self.colors = [(255, 255, 0), (0, 0, 255), (255, 0, 0)]  # Giallo, Blu, Rosso
+        self.color = random.choice(self.colors)  # Sceglie un colore casuale
+        self.surf = pygame.Surface((20, 40), pygame.SRCALPHA)  # Dimensioni del rombo
+        pygame.draw.polygon(self.surf, self.color, [(10, 0), (20, 20), (10, 40), (0, 20)])  # Disegna un rombo
         self.rect = self.surf.get_rect(center=(x, y))
 
     def disegna(self, superficie):
@@ -159,6 +165,9 @@ class Portale(pygame.sprite.Sprite):
 
     def disegna(self, superficie):
         superficie.blit(self.surf, self.rect)
+
+    def cambia_colore(self, nuovo_colore):
+        self.surf.fill(nuovo_colore)
 
 
 class Coin(pygame.sprite.Sprite):
@@ -201,7 +210,6 @@ class CoinManager:
 
             self.coins.add(Coin(x, y))
 
-
     def aggiorna(self):
         # Muovi i coin insieme al terreno
         for coin in self.coins:
@@ -225,7 +233,7 @@ class Terreno:
     def __init__(self, gioco):
         self.gioco = gioco
         self.porzioni = []
-        self.ostacoli = []
+        self.cristalli = pygame.sprite.Group()
         self.ultima_altezza = self.gioco.ALTEZZA - 50
         # Definisci qui il numero di porzioni tra 5 e 20
         self.num_porzione_per_portale = random.randint(5, 20)
@@ -261,7 +269,7 @@ class Terreno:
         self.porzioni.append(nuova_porzione)
 
         # Genera ostacoli per ogni porzione (opzionale, a seconda della logica del tuo gioco)
-        self.genera_ostacolo_per_porzione(nuova_porzione)
+        self.genera_cristallo_per_porzione(nuova_porzione)
 
         # Controlla se ci sono almeno due porzioni per generare i coin tra di loro
         if len(self.porzioni) > 1:
@@ -276,21 +284,24 @@ class Terreno:
         self.ultima_altezza = nuova_altezza
         return nuova_altezza
 
-    def genera_ostacolo_per_porzione(self, porzione):
-        if random.choice([True, True, True, False]):  # Maggiore probabilità di generare un ostacolo
-            # Esempio di generazione di un ostacolo centrato sulla porzione
-            x_ostacolo = porzione.x + (porzione.width - 20) / 2  # Larghezza ostacolo ipotetica: 20
-            y_ostacolo = porzione.top - 50  # Altezza ostacolo ipotetica: 50
-            self.ostacoli.append(Ostacolo(self.gioco, x_ostacolo, y_ostacolo))
+    def genera_cristallo_per_porzione(self, porzione):
+        if random.choice([True, True, True, False]):  # Maggiore probabilità di generare un cristallo
+            # Calcola la posizione x e y per il cristallo
+            x = random.randrange(porzione.left + 20, porzione.right - 20)
+            y = porzione.top - 60  # Assicurati che il cristallo sia sopra la porzione di terreno
+
+            # Crea l'istanza di Cristallo e aggiungila al gruppo
+            cristallo = Cristallo(x, y)
+            self.cristalli.add(cristallo)
 
     def aggiorna(self):
         # Muovi ogni porzione di terreno
         for porzione in self.porzioni:
             porzione.x += self.gioco.VELOCITA_TERRENO
 
-        # Muovi ogni ostacolo insieme al terreno
-        for ostacolo in self.ostacoli:
-            ostacolo.rect.x += self.gioco.VELOCITA_TERRENO
+        # Muovi ogni cristallo insieme al terreno
+        for cristallo in self.cristalli:
+            cristallo.rect.x += self.gioco.VELOCITA_TERRENO
 
         # Muovi il portale di inizio insieme al terreno
         if self.portale_inizio:
@@ -303,8 +314,10 @@ class Terreno:
         # Rimuovi le porzioni che sono completamente fuori dallo schermo
         self.porzioni = [porzione for porzione in self.porzioni if porzione.right > 0]
 
-        # Rimuovi gli ostacoli che sono completamente fuori dallo schermo
-        self.ostacoli = [ostacolo for ostacolo in self.ostacoli if ostacolo.rect.right > 0]
+        # Rimuovi i cristalli che sono completamente fuori dallo schermo
+        for cristallo in self.cristalli:
+            if cristallo.rect.right < 0:
+                cristallo.kill()
 
         # Genera nuove porzioni e potenzialmente nuovi ostacoli se necessario
         if not self.porzioni or self.porzioni[-1].right < self.gioco.LARGHEZZA:
@@ -313,8 +326,8 @@ class Terreno:
     def disegna(self, superficie):
         for porzione in self.porzioni:
             pygame.draw.rect(superficie, self.gioco.VERDE, porzione)
-        for ostacolo in self.ostacoli:
-            ostacolo.disegna(superficie)
+        for cristallo in self.cristalli:
+            cristallo.disegna(superficie)
         self.portale_inizio.disegna(superficie)
         self.portale_fine.disegna(superficie)
 
