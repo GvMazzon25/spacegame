@@ -50,9 +50,11 @@ class Gioco:
 
             cristalli_toccati = pygame.sprite.spritecollide(self.giocatore, self.terreno.cristalli, True)
             for cristallo in cristalli_toccati:
-                self.giocatore.cambia_colore(cristallo.color)
+                colore_corrente = cristallo.color
+                self.giocatore.cambia_colore(colore_corrente)
+                # Assicurati che il portale di fine esista prima di tentare di cambiarne il colore
                 if self.terreno.portale_fine:
-                    self.terreno.portale_fine.cambia_colore(self.giocatore.colore_corrente)
+                    self.terreno.portale_fine.cambia_colore(colore_corrente)
 
             # Gestione collisione con il portale
             if self.terreno.portale_fine and self.giocatore.rect.colliderect(self.terreno.portale_fine.rect):
@@ -98,6 +100,7 @@ class Giocatore(pygame.sprite.Sprite):
 
     def cambia_colore(self, nuovo_colore):
         self.colore_corrente = self.surf.fill(nuovo_colore)
+        self.surf.fill(nuovo_colore)
 
     def aggiorna(self):
         self.velocita_y += 1  # Simula la gravità
@@ -142,10 +145,20 @@ class Giocatore(pygame.sprite.Sprite):
 
 # Classe Ostacolo
 class Cristallo(pygame.sprite.Sprite):
+    COLORI = [
+        (255, 0, 0),  # Rosso
+        (255, 165, 0),  # Arancione
+        (255, 255, 0),  # Giallo
+        (0, 128, 0),  # Verde
+        (0, 0, 255),  # Blu
+        (128, 0, 128),  # Viola
+        (75, 0, 130)  # Indaco
+    ]
+
     def __init__(self, x, y):
         super().__init__()
         self.colors = [(255, 255, 0), (0, 0, 255), (255, 0, 0)]  # Giallo, Blu, Rosso
-        self.color = random.choice(self.colors)  # Sceglie un colore casuale
+        self.color = random.choice(Cristallo.COLORI)  # Sceglie un colore casuale
         self.surf = pygame.Surface((20, 40), pygame.SRCALPHA)  # Dimensioni del rombo
         pygame.draw.polygon(self.surf, self.color, [(10, 0), (20, 20), (10, 40), (0, 20)])  # Disegna un rombo
         self.rect = self.surf.get_rect(center=(x, y))
