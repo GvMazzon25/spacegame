@@ -157,7 +157,6 @@ class Cristallo(pygame.sprite.Sprite):
 
     def __init__(self, x, y):
         super().__init__()
-        self.colors = [(255, 255, 0), (0, 0, 255), (255, 0, 0)]  # Giallo, Blu, Rosso
         self.color = random.choice(Cristallo.COLORI)  # Sceglie un colore casuale
         self.surf = pygame.Surface((20, 40), pygame.SRCALPHA)  # Dimensioni del rombo
         pygame.draw.polygon(self.surf, self.color, [(10, 0), (20, 20), (10, 40), (0, 20)])  # Disegna un rombo
