@@ -3,7 +3,7 @@ import sys
 import random
 
 
-class Gioco:
+class Livello:
     def __init__(self):
         pygame.init()
         self.punteggio = 0
@@ -345,5 +345,5 @@ class Terreno:
 
 
 if __name__ == "__main__":
-    gioco = Gioco()
-    gioco.esegui()
+    livello = Livello()
+    livello.esegui()
