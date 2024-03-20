@@ -1,39 +1,41 @@
 import pygame
 import sys
 import random
+from Utility.Exceptions import PerditaException
 
 
 class Livello:
-    def __init__(self):
+    def __init__(self, schermo, configurazione, colore_iniziale=None):
         pygame.init()
         self.punteggio = 0
 
-        # Impostazioni della finestra
-        self.LARGHEZZA, self.ALTEZZA = 800, 600
-        self.schermo = pygame.display.set_mode((self.LARGHEZZA, self.ALTEZZA))
-        pygame.display.set_caption("INFINITY")
+        self.schermo = schermo
+        self.LARGHEZZA, self.ALTEZZA = self.schermo.get_size()
         self.clock = pygame.time.Clock()
 
-        # Colori
-        self.NERO = (0, 0, 0)
-        self.BLU = (0, 0, 255)
-        self.VERDE = (0, 255, 0)
-        self.ROSSO = (255, 0, 0)
-        self.AZZURRO = (0, 255, 255)
+        self.NERO = configurazione['SFONDO']
+        self.BLU = configurazione['SKIN']
+        self.VERDE = configurazione['TERRENO']
+        self.ROSSO = configurazione['ROSSO']
+        self.AZZURRO = configurazione['AZZURRO']
 
-        # Parametri configurabili
-        self.VELOCITA_TERRENO = -8
-        self.DISTANZA_ORIZZONTALE_MIN = 150
-        self.DISTANZA_ORIZZONTALE_MAX = 300
-        self.DIFFERENZA_ALTEZZA_MAX = 50  # Differenza massima di altezza tra due terreni adiacenti
-        self.SALTO_MAX = 100  # Distanza massima di salto verticale del personaggio
+        self.VELOCITA_TERRENO = configurazione['VELOCITA_TERRENO']
+        self.DISTANZA_ORIZZONTALE_MIN = configurazione['DISTANZA_ORIZZONTALE_MIN']
+        self.DISTANZA_ORIZZONTALE_MAX = configurazione['DISTANZA_ORIZZONTALE_MAX']
+        self.DIFFERENZA_ALTEZZA_MAX = configurazione['DIFFERENZA_ALTEZZA_MAX']
+        self.SALTO_MAX = configurazione['SALTO_MAX']
+        self.MAIN_COLOR = configurazione.get("MAIN_COLOR")
 
         self.coin_manager = CoinManager(self)
-        self.giocatore = Giocatore(self)
-        self.terreno = Terreno(self)
+        self.giocatore = Giocatore(self,self)
+        self.ultimo_colore_cristallo = colore_iniziale  # Aggiungi questo
+
+        self.terreno = Terreno(self, colore_obbligatorio=configurazione.get("MAIN_COLOR"),
+                               colore_iniziale=colore_iniziale)
 
     def esegui(self):
-        while True:
+        completato = False
+        while not completato:
             for evento in pygame.event.get():
                 if evento.type == pygame.QUIT:
                     pygame.quit()
@@ -44,21 +46,17 @@ class Livello:
 
             self.giocatore.aggiorna()
             self.terreno.aggiorna()
-            # Aggiorna i coin e gestisci le collisioni
             self.coin_manager.aggiorna()
             self.coin_manager.gestisci_collisioni(self.giocatore)
 
             cristalli_toccati = pygame.sprite.spritecollide(self.giocatore, self.terreno.cristalli, True)
             for cristallo in cristalli_toccati:
-                colore_corrente = cristallo.color
-                self.giocatore.cambia_colore(colore_corrente)
-                # Assicurati che il portale di fine esista prima di tentare di cambiarne il colore
+                self.ultimo_colore_cristallo = cristallo.color
+                # Aggiorna anche il colore del giocatore se necessario
+                self.giocatore.cambia_colore(cristallo.color)
+                # Aggiorna il colore del portale di fine, se esiste
                 if self.terreno.portale_fine:
-                    self.terreno.portale_fine.cambia_colore(colore_corrente)
-
-            # Gestione collisione con il portale
-            if self.terreno.portale_fine and self.giocatore.rect.colliderect(self.terreno.portale_fine.rect):
-                self.livello_superato()
+                    self.terreno.portale_fine.cambia_colore(cristallo.color)
 
             self.schermo.fill(self.NERO)
             self.terreno.disegna(self.schermo)
@@ -67,7 +65,6 @@ class Livello:
             if self.terreno.portale_fine:
                 self.terreno.portale_fine.disegna(self.schermo)
 
-            # Aggiunta per la visualizzazione del punteggio
             font = pygame.font.SysFont(None, 36)
             testo_punteggio = font.render(f"Punteggio: {self.punteggio}", True, (255, 255, 255))
             self.schermo.blit(testo_punteggio, (self.LARGHEZZA - testo_punteggio.get_width() - 10, 10))
@@ -75,26 +72,51 @@ class Livello:
             pygame.display.flip()
             self.clock.tick(30)
 
+            if self.terreno.portale_fine and self.giocatore.rect.colliderect(self.terreno.portale_fine.rect):
+                if self.terreno.portale_fine.colore == self.MAIN_COLOR:  # Verifica il colore del portale
+                    completato = self.livello_superato()
+                else:
+                    print("Hai perso! Il colore del portale non corrisponde al colore richiesto.")
+                    # Al posto di chiudere il gioco, solleva un'eccezione
+                    raise PerditaException(self.punteggio)
+
+        return completato
+
+    def obtain_score(self):
+        return self.punteggio
+
     def livello_superato(self):
+        # Mostra un messaggio o esegui un'animazione qui
+        # Non chiamare più pygame.quit() o sys.exit() qui
+        # Al termine, restituisci True per segnalare che il livello è stato superato
         font = pygame.font.Font(None, 74)
-        testo = font.render("Livello superato", 1, (255, 255, 255))
+        testo = font.render("Livello superato!", 1, (255, 255, 255))
         testo_pos = testo.get_rect(centerx=self.schermo.get_width() / 2, centery=self.schermo.get_height() / 2)
-        self.schermo.fill(self.NERO)  # Pulisce lo schermo prima di disegnare il messaggio
         self.schermo.blit(testo, testo_pos)
         pygame.display.flip()
-        pygame.time.wait(3000)  # Aspetta 3 secondi prima di terminare
-        pygame.quit()
-        sys.exit()
+        pygame.time.wait(2000)  # Attendi un po' prima di passare al livello successivo
+
+        return True
 
 
 # Classe Giocatore
+
+
+def game_over(livello):
+    print("Hai perso!")
+    score = livello.obtain_score()
+    print(score)
+    raise PerditaException(score)
+
+
 class Giocatore(pygame.sprite.Sprite):
-    def __init__(self, gioco):
+    def __init__(self, gioco,livello):
         super().__init__()
         self.gioco = gioco
         self.surf = pygame.Surface((50, 50))
         self.colore_corrente = self.surf.fill(self.gioco.BLU)
         self.rect = self.surf.get_rect(center=(self.gioco.LARGHEZZA // 8, self.gioco.ALTEZZA - 150))
+        self.livello = livello
         self.velocita_y = 1
         self.salti_rimanenti = 2
 
@@ -120,7 +142,7 @@ class Giocatore(pygame.sprite.Sprite):
         else:
             # Se non ci sono collisioni e il giocatore è sotto un certo limite, ha perso
             if self.rect.top > self.gioco.ALTEZZA:
-                self.game_over()
+                game_over(self.livello)
 
         self.rect.y -= 1  # Ripristina la posizione originale se non c'è stata collisione
 
@@ -131,11 +153,6 @@ class Giocatore(pygame.sprite.Sprite):
 
     def disegna(self, superficie):
         superficie.blit(self.surf, self.rect)
-
-    def game_over(self):
-        print("Hai perso!")
-        pygame.quit()
-        sys.exit()
 
     def vittoria(self):
         print("Hai vinto!")
@@ -155,9 +172,10 @@ class Cristallo(pygame.sprite.Sprite):
         (75, 0, 130)  # Indaco
     ]
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, color=None):
         super().__init__()
-        self.color = random.choice(Cristallo.COLORI)  # Sceglie un colore casuale
+        # Se non viene specificato un colore, ne sceglie uno casualmente dalla lista COLORI
+        self.color = color if color is not None else random.choice(Cristallo.COLORI)
         self.surf = pygame.Surface((20, 40), pygame.SRCALPHA)  # Dimensioni del rombo
         pygame.draw.polygon(self.surf, self.color, [(10, 0), (20, 20), (10, 40), (0, 20)])  # Disegna un rombo
         self.rect = self.surf.get_rect(center=(x, y))
@@ -170,19 +188,16 @@ class Portale(pygame.sprite.Sprite):
     def __init__(self, gioco, x, y, colore_iniziale):
         super().__init__()
         self.gioco = gioco
-        # Imposta il colore del portale al colore iniziale passato
-        self.colore = colore_iniziale
-        # Definizione della superficie del portale e applicazione del colore iniziale
-        self.surf = pygame.Surface((20, 100))  # Dimensioni esemplificative
-        self.surf.fill(self.colore)  # Applica il colore iniziale
+        self.surf = pygame.Surface((20, 100))
+        self.colore = colore_iniziale if colore_iniziale is not None else (0, 255, 255)  # Esempio di colore di default
+        self.surf.fill(self.colore)
         self.rect = self.surf.get_rect(center=(x, y))
 
     def disegna(self, superficie):
         superficie.blit(self.surf, self.rect)
 
     def cambia_colore(self, nuovo_colore):
-        # Aggiorna il colore del portale con quello nuovo e riapplica il colore alla superficie
-        self.colore = nuovo_colore
+        self.colore = nuovo_colore  # Aggiorna il colore memorizzato
         self.surf.fill(self.colore)
 
 
@@ -252,10 +267,11 @@ class Terreno:
         self.cristalli = pygame.sprite.Group()
         self.ultima_altezza = self.gioco.ALTEZZA - 50
         self.num_porzione_per_portale = random.randint(5, 20)
-        # Se non viene specificato un colore_iniziale, usa un colore predefinito (per esempio, Azzurro)
-        self.colore_iniziale = colore_iniziale if colore_iniziale else self.gioco.AZZURRO
-        self.portale_inizio = Portale(self.gioco, 50, self.ultima_altezza - 75, self.colore_iniziale)
-        self.portale_fine = None
+        # Usa il colore_iniziale per il portale di inizio, se specificato, altrimenti usa il colore predefinito del
+        # gioco
+        self.portale_inizio = Portale(self.gioco, 50, self.ultima_altezza - 75,
+                                      colore_iniziale if colore_iniziale else self.gioco.AZZURRO)
+        self.portale_fine = None  # Sarà impostato dopo la generazione delle porzioni
         self.colore_obbligatorio = colore_obbligatorio
         self.genera_terreno_iniziale()
 
@@ -271,7 +287,8 @@ class Terreno:
 
         # Ora che tutte le porzioni sono state generate, posiziona il portale di fine
         ultima_porzione = self.porzioni[-1]
-        self.portale_fine = Portale(self.gioco, ultima_porzione.right + 50, ultima_porzione.top - 75)
+        self.portale_fine = Portale(self.gioco, ultima_porzione.right + 50, ultima_porzione.top - 75,
+                                    self.gioco.ultimo_colore_cristallo)
 
     def aggiungi_porzione(self):
         # Verifica se il portale di fine è già stato creato
@@ -287,7 +304,7 @@ class Terreno:
         self.porzioni.append(nuova_porzione)
 
         # Genera ostacoli per ogni porzione (opzionale, a seconda della logica del tuo gioco)
-        self.genera_cristallo_per_porzione(nuova_porzione)
+        self.genera_cristallo_per_porzione(nuova_porzione, self.colore_obbligatorio)
 
         # Controlla se ci sono almeno due porzioni per generare i coin tra di loro
         if len(self.porzioni) > 1:
@@ -302,15 +319,19 @@ class Terreno:
         self.ultima_altezza = nuova_altezza
         return nuova_altezza
 
-    def genera_cristallo_per_porzione(self, porzione):
-        if random.choice([True, True, True, False]):  # Maggiore probabilità di generare un cristallo
-            # Calcola la posizione x e y per il cristallo
-            x = random.randrange(porzione.left + 20, porzione.right - 20)
-            y = porzione.top - 60  # Assicurati che il cristallo sia sopra la porzione di terreno
-
-            # Crea l'istanza di Cristallo e aggiungila al gruppo
+    def genera_cristallo_per_porzione(self, porzione, colore_obbligatorio=None):
+        # Genera esattamente un cristallo per porzione.
+        x = random.randrange(porzione.left + 20, porzione.right - 20)
+        y = porzione.top - 60
+        if self.colore_obbligatorio:
+            cristallo = Cristallo(x, y, self.colore_obbligatorio)
+        else:
             cristallo = Cristallo(x, y)
-            self.cristalli.add(cristallo)
+        self.cristalli.add(cristallo)
+
+        # Dopo aver generato il primo cristallo con il colore obbligatorio,
+        # puoi rimuovere il colore obbligatorio per le successive generazioni, se desideri
+        self.colore_obbligatorio = None
 
     def aggiorna(self):
         # Muovi ogni porzione di terreno
@@ -348,8 +369,3 @@ class Terreno:
             cristallo.disegna(superficie)
         self.portale_inizio.disegna(superficie)
         self.portale_fine.disegna(superficie)
-
-
-if __name__ == "__main__":
-    livello = Livello()
-    livello.esegui()
