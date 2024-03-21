@@ -1,6 +1,5 @@
 from Levels.Level import Livello
 import pygame
-import sys
 from Utility.configuration import Configurazione
 from Utility.Exceptions import PerditaException
 from Screen.lost_screen import SchermataPerdita
