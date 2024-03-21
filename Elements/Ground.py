@@ -5,14 +5,16 @@ from Elements.Cristal import Cristallo
 
 
 class Terreno:
-    def __init__(self, gioco, colore_obbligatorio=None, colore_iniziale=None):
+    def __init__(self, gioco, colore_obbligatorio=None, colore_iniziale=None, num_minimo_blocchi=10, num_massimo_blocchi=15):
         self.gioco = gioco
         self.porzioni = []
         self.cristalli = pygame.sprite.Group()
         self.ultima_altezza = self.gioco.ALTEZZA - 50
-        self.num_porzione_per_portale = random.randint(5, 20)
-        # Usa il colore_iniziale per il portale di inizio, se specificato, altrimenti usa il colore predefinito del
-        # gioco
+        # Stabilisce il range entro cui verrà scelto il numero di blocchi da generare
+        self.num_minimo_blocchi = num_minimo_blocchi
+        self.num_massimo_blocchi = num_massimo_blocchi
+        self.num_porzione_per_portale = random.randint(self.num_minimo_blocchi, self.num_massimo_blocchi)
+        # Continua come prima...
         self.portale_inizio = Portale(self.gioco, 50, self.ultima_altezza - 75,
                                       colore_iniziale if colore_iniziale else self.gioco.AZZURRO)
         self.portale_fine = None  # Sarà impostato dopo la generazione delle porzioni
@@ -108,7 +110,7 @@ class Terreno:
 
     def disegna(self, superficie):
         for porzione in self.porzioni:
-            pygame.draw.rect(superficie, self.gioco.VERDE, porzione)
+            pygame.draw.rect(superficie, self.gioco.GROUND1, porzione)
         for cristallo in self.cristalli:
             cristallo.disegna(superficie)
         self.portale_inizio.disegna(superficie)

@@ -10,7 +10,7 @@ class SchermataPerdita:
         self.font = pygame.font.SysFont(None, 48)
         self.font_punteggio = pygame.font.SysFont(None, 36)
 
-    def mostra(self, timeout=5000):  # Timeout in millisecondi
+    def mostra(self, timeout=2000):  # Timeout in millisecondi
         inizio_tempo = pygame.time.get_ticks()  # Tempo di inizio
 
         self.schermo.fill((0, 0, 0))  # Sfondo nero

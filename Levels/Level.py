@@ -13,18 +13,18 @@ class Livello:
         self.LARGHEZZA, self.ALTEZZA = self.schermo.get_size()
         self.clock = pygame.time.Clock()
 
-        self.NERO = configurazione['SFONDO']
-        self.BLU = configurazione['SKIN']
-        self.VERDE = configurazione['TERRENO']
-        self.ROSSO = configurazione['ROSSO']
-        self.AZZURRO = configurazione['AZZURRO']
+        self.SFONDO = configurazione['Palette']['SFONDO']
+        self.SKIN = configurazione['Palette']['SKIN']
+        self.GROUND1 = configurazione['Palette']['TERRENO']
+        self.ROSSO = configurazione['Palette']['ROSSO']
+        self.AZZURRO = configurazione['Palette']['AZZURRO']
 
-        self.VELOCITA_TERRENO = configurazione['VELOCITA_TERRENO']
-        self.DISTANZA_ORIZZONTALE_MIN = configurazione['DISTANZA_ORIZZONTALE_MIN']
-        self.DISTANZA_ORIZZONTALE_MAX = configurazione['DISTANZA_ORIZZONTALE_MAX']
-        self.DIFFERENZA_ALTEZZA_MAX = configurazione['DIFFERENZA_ALTEZZA_MAX']
-        self.SALTO_MAX = configurazione['SALTO_MAX']
-        self.MAIN_COLOR = configurazione.get("MAIN_COLOR")
+        self.VELOCITA_TERRENO = configurazione['Rules']['VELOCITA_TERRENO']
+        self.DISTANZA_ORIZZONTALE_MIN = configurazione['Rules']['DISTANZA_ORIZZONTALE_MIN']
+        self.DISTANZA_ORIZZONTALE_MAX = configurazione['Rules']['DISTANZA_ORIZZONTALE_MAX']
+        self.DIFFERENZA_ALTEZZA_MAX = configurazione['Rules']['DIFFERENZA_ALTEZZA_MAX']
+        self.SALTO_MAX = configurazione['Rules']['SALTO_MAX']
+        self.MAIN_COLOR = configurazione['Palette']['MAIN_COLOR']
 
         self.coin_manager = CoinManager(self)
         self.giocatore = Giocatore(self,self)
@@ -58,7 +58,7 @@ class Livello:
                 if self.terreno.portale_fine:
                     self.terreno.portale_fine.cambia_colore(cristallo.color)
 
-            self.schermo.fill(self.NERO)
+            self.schermo.fill(self.SFONDO)
             self.terreno.disegna(self.schermo)
             self.giocatore.disegna(self.schermo)
             self.coin_manager.disegna(self.schermo)

@@ -11,33 +11,45 @@ class GestoreLivelli:
         pygame.init()
         self.schermo = pygame.display.set_mode((800, 600))
         pygame.display.set_caption("Infinity")
-
-        # Crea un'istanza della classe Configurazione
         self.configurazione = Configurazione()
+        self.inizializza_gioco()
 
-        # Usa il metodo ottieni_configurazione per ottenere le configurazioni specifiche
-        config_livello_0 = self.configurazione.ottieni_configurazione(0)
-        config_livello_1 = self.configurazione.ottieni_configurazione(1)
-
-        # Crea i livelli usando le configurazioni ottenute
+    def inizializza_gioco(self):
+        """Inizializza o reinizializza lo stato del gioco per una nuova sessione."""
+        self.livello_attuale = 0
+        self.ultimo_livello_raggiunto = 0
+        # Carica i livelli in base alla configurazione corrente
         self.livelli = [
-            Livello(self.schermo, config_livello_0),
-            Livello(self.schermo, config_livello_1)
+            Livello(self.schermo, self.configurazione.ottieni_configurazione(0)),
+            Livello(self.schermo, self.configurazione.ottieni_configurazione(1))
         ]
 
-        self.livello_attuale = 0
-
-    def mostra_schermata_perdita(self, punteggio):
-        # Crea e mostra la schermata di perdita passando il punteggio come argomento
-        schermata_perdita = SchermataPerdita(self.schermo, punteggio)
-        schermata_perdita.mostra()
+    def reset_gioco(self):
+        """Resetta lo stato del gioco per una nuova sessione."""
+        self.inizializza_gioco()
 
     def mostra_menu_principale(self):
-        # Mostra il menu principale e gestisce la selezione dell'utente
         menu = MenuPrincipale(self.schermo)
-        menu.mostra()
+        modalita_selezionata = menu.mostra()
+        return modalita_selezionata
+
+    def mostra_schermata_perdita(self, punteggio):
+        schermata_perdita = SchermataPerdita(self.schermo, punteggio)
+        decisione = schermata_perdita.mostra()
+        return decisione
 
     def esegui(self):
+        while True:
+            self.reset_gioco()  # Assicurati di resettare il gioco prima di iniziare una nuova sessione
+            modalita_selezionata = self.mostra_menu_principale()
+            if modalita_selezionata == "MEDIO":
+                self.esegui_ciclo_gioco_Medio()
+            elif modalita_selezionata == "FACILE":
+                self.esegui_ciclo_gioco_Facile(self.ultimo_livello_raggiunto)
+            elif modalita_selezionata == "DIFFICILE":
+                print("Modalità DIFFICILE selezionata - Funzionalità in fase di sviluppo.")
+
+    def esegui_ciclo_gioco_Medio(self):
         while self.livello_attuale < len(self.livelli):
             livello_corrente = self.livelli[self.livello_attuale]
             try:
@@ -46,6 +58,7 @@ class GestoreLivelli:
                     self.livello_attuale += 1
                     # Puoi passare informazioni tra livelli qui se necessario
             except PerditaException as e:
+                print('ciao')
                 punteggio = e.punteggio
                 self.mostra_schermata_perdita(punteggio)
                 # Gestisci la perdita qui
@@ -54,9 +67,21 @@ class GestoreLivelli:
                 self.livello_attuale = 0  # Ricomincia dal primo livello
                 break  # Esci dal ciclo di gioco principale
 
+    def esegui_ciclo_gioco_Facile(self, ultimo_livello_raggiunto):
+        self.livello_attuale = ultimo_livello_raggiunto
+        while self.livello_attuale < len(self.livelli):
+            try:
+                livello_corrente = self.livelli[self.livello_attuale]
+                completato = livello_corrente.esegui()
+                if completato:
+                    self.livello_attuale += 1
+                    self.ultimo_livello_raggiunto = self.livello_attuale
+            except PerditaException as e:
+                self.mostra_schermata_perdita(e.punteggio)
+                break  # Dopo aver mostrato la schermata di perdita, il ciclo si interrompe e si ritorna al menu principale
+
 
 if __name__ == "__main__":
-    while True:
-        gestore = GestoreLivelli()
-        gestore.mostra_menu_principale()
-        gestore.esegui()
+    gestore = GestoreLivelli()
+    gestore.esegui()
+    # Non creare una nuova istanza di GestoreLivelli, usa l'istanza esistente

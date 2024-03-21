@@ -10,7 +10,7 @@ class Giocatore(pygame.sprite.Sprite):
         super().__init__()
         self.gioco = gioco
         self.surf = pygame.Surface((50, 50))
-        self.colore_corrente = self.surf.fill(self.gioco.BLU)
+        self.colore_corrente = self.surf.fill(self.gioco.SKIN)
         self.rect = self.surf.get_rect(center=(self.gioco.LARGHEZZA // 8, self.gioco.ALTEZZA - 150))
         self.livello = livello
         self.velocita_y = 1
