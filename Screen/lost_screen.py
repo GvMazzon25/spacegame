@@ -27,14 +27,20 @@ class SchermataPerdita:
 
         # Attende l'input dell'utente o il timeout
         attesa = True
+        uscire = False  # Aggiungi questa variabile per tenere traccia della decisione dell'utente
         while attesa:
             for evento in pygame.event.get():
                 if evento.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-                if evento.type == pygame.KEYDOWN:
-                    if evento.key == pygame.K_RETURN:  # Tasto Enter per continuare
+                elif evento.type == pygame.KEYDOWN:
+                    if evento.key == pygame.K_ESCAPE:  # Aggiungi il controllo per ESC
+                        uscire = True  # Imposta uscire a True se ESC è premuto
+                        attesa = False
+                    elif evento.key == pygame.K_RETURN:  # Tasto Enter per continuare
                         attesa = False
 
             if pygame.time.get_ticks() - inizio_tempo > timeout:  # Verifica il timeout
                 attesa = False
+
+        return uscire  # Restituisci il valore di uscire

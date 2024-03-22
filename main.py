@@ -66,6 +66,7 @@ class GestoreLivelli:
                 self.mostra_menu_principale()
                 self.livello_attuale = 0  # Ricomincia dal primo livello
                 break  # Esci dal ciclo di gioco principale
+            continue
 
     def esegui_ciclo_gioco_Facile(self, ultimo_livello_raggiunto):
         self.livello_attuale = ultimo_livello_raggiunto
@@ -77,8 +78,14 @@ class GestoreLivelli:
                     self.livello_attuale += 1
                     self.ultimo_livello_raggiunto = self.livello_attuale
             except PerditaException as e:
-                self.mostra_schermata_perdita(e.punteggio)
-                break  # Dopo aver mostrato la schermata di perdita, il ciclo si interrompe e si ritorna al menu principale
+                uscire = self.mostra_schermata_perdita(e.punteggio)
+                print(uscire)
+                if uscire:
+                    break  # Esci dal ciclo e potenzialmente torna al menu principale
+                else:
+                    # Potresti voler resettare lo stato del livello corrente qui
+                    break
+            print('ciao')
 
 
 if __name__ == "__main__":

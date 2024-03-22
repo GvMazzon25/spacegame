@@ -44,7 +44,8 @@ class Giocatore(pygame.sprite.Sprite):
         else:
             # Se non ci sono collisioni e il giocatore è sotto un certo limite, ha perso
             if self.rect.top > self.gioco.ALTEZZA:
-                game_over(self.livello)
+                score = self.livello.obtain_score()
+                raise PerditaException(score)
 
         self.rect.y -= 1  # Ripristina la posizione originale se non c'è stata collisione
 
@@ -62,8 +63,8 @@ class Giocatore(pygame.sprite.Sprite):
         sys.exit()
 
 
-def game_over(livello):
-    print("Hai perso!")
-    score = livello.obtain_score()
-    print(score)
-    raise PerditaException(score)
+#def game_over(livello):
+#    print("Hai perso!")
+#    score = livello.obtain_score()
+#    print(score)
+#    raise PerditaException(score)
