@@ -1,4 +1,3 @@
-import itertools
 import random
 
 def genera_colore_casuale():

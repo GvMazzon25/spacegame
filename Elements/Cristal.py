@@ -3,7 +3,7 @@ from Utility.rgb_generator import genera_colore_casuale as rgb_generator
 import pygame
 
 
-class Cristallo(pygame.sprite.Sprite):
+class CristalloTest(pygame.sprite.Sprite):
     COLORI = [
         (255, 0, 0),  # Rosso
         (255, 165, 0),  # Arancione
@@ -26,22 +26,25 @@ class Cristallo(pygame.sprite.Sprite):
         superficie.blit(self.surf, self.rect)
 
 
-class CristalloTest(pygame.sprite.Sprite):
+class Cristallo(pygame.sprite.Sprite):
     RAINBOW = [
+        (0, 0, 0), # Nero
         (255, 0, 0),  # Rosso
         (255, 165, 0),  # Arancione
         (255, 255, 0),  # Giallo
         (0, 128, 0),  # Verde
         (0, 0, 255),  # Blu
         (128, 0, 128),  # Viola
-        (75, 0, 130)  # Indaco
+        (75, 0, 130),  # Indaco
+        (225, 225, 225) # Nero
     ]
 
-    def __init__(self, x, y, colore_obbligatorio, use_random_color_generator=False):
+    def __init__(self, x, y, colore):
         super().__init__()
         self.surf = pygame.Surface((20, 40), pygame.SRCALPHA)  # Dimensioni del rombo
-        self.colore = colore_obbligatorio if not use_random_color_generator else rgb_generator()
-        self.disegna_con_colore(x, y)
+        self.colore = colore  # Colore passato direttamente al costruttore
+        pygame.draw.polygon(self.surf, self.colore, [(10, 0), (20, 20), (10, 40), (0, 20)])  # Disegna un rombo
+        self.rect = self.surf.get_rect(center=(x, y))
 
     def disegna_fixed_color(self, x, y):
         # Sceglie un colore dalla lista COLORI
@@ -63,3 +66,6 @@ class CristalloTest(pygame.sprite.Sprite):
     # Metodo per disegnare il cristallo sulla superficie del gioco
     def disegna(self, superficie):
         superficie.blit(self.surf, self.rect)
+
+    def color(self):
+        return self.colore
