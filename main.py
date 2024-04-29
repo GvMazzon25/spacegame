@@ -290,7 +290,6 @@ class GameScreen:
             modalita_selezionata = self.mostra_menu_principale()
             print(modalita_selezionata)
 
-
             if modalita_selezionata in ['MEDIO', 'FACILE', 'DIFFICILE']:
                 self.mostra_loading_screen()
                 if modalita_selezionata == 'MEDIO':

@@ -3,10 +3,15 @@ import pygame
 from Elements.Portal import Portale
 from Elements.Cristal import Cristallo
 from Elements.Blocco import Blocco
+from SpecialElements.Plant import Plant
 
 
 class Terreno4:
     def __init__(self, gioco, colore_obbligatorio, colore_iniziale=None, num_minimo_blocchi=10, num_massimo_blocchi=15):
+        self.altezza_plant = 350
+        self.plants = pygame.sprite.Group()
+        self.plant = None
+        self.altezza_fissa_count = 0
         self.gioco = gioco
         self.porzioni = []
         self.cristalli = pygame.sprite.Group()
@@ -24,6 +29,7 @@ class Terreno4:
         self.chiamata_per_cristallo_obbligatorio = random.randint(1, 5)
         self.rainbow_locale = list(Cristallo.RAINBOW)  # Crea una copia locale della lista dei colori arcobaleno
         self.porzioni = []
+        self.plant_generato = False
 
         if colore_obbligatorio in self.rainbow_locale:
             self.rainbow_locale.remove(colore_obbligatorio)
@@ -50,27 +56,48 @@ class Terreno4:
             # Non generare nuovo terreno se il portale di fine esiste già
             return
 
-        distanza_da_ultimo = random.randint(self.gioco.DISTANZA_ORIZZONTALE_MIN, self.gioco.DISTANZA_ORIZZONTALE_MAX)
-        nuova_altezza = self.calcola_nuova_altezza()
+        # Determina se questa porzione avrà altezza fissa o casuale
+        usa_altezza_fissa = self.altezza_fissa_count > 0
+        if usa_altezza_fissa:
+            distanza_da_ultimo = random.randint(self.gioco.DISTANZA_ORIZZONTALE_MIN,
+                                                self.gioco.DISTANZA_ORIZZONTALE_MAX)
+            nuova_altezza = 300
+            self.altezza_fissa_count -= 1  # Decrementa il contatore di altezze fisse
+        else:
+            # Decide casualmente se questa porzione sarà il punto di inizio per altezze fisse
+            if random.randint(1, 2) == 1:
+                distanza_da_ultimo = 0
+                if random.randint(1, 2) == 1:
+                    nuova_altezza = 300 + random.randint(5, 100)
+                else:
+                    nuova_altezza = 300 - random.randint(5, 100)
+                self.altezza_fissa_count = 2  # Imposta un numero di porzioni consecutive ad altezza fissa
+            else:
+                nuova_altezza = self.calcola_nuova_altezza()
+                distanza_da_ultimo = random.randint(self.gioco.DISTANZA_ORIZZONTALE_MIN,
+                                                    self.gioco.DISTANZA_ORIZZONTALE_MAX)
+
         larghezza_nuova_porz = random.randint(self.gioco.LARGHEZZA // 4, self.gioco.LARGHEZZA // 2)
         ultima_porzione = self.porzioni[-1]
+
         nuova_porzione = Blocco(ultima_porzione.right + distanza_da_ultimo, nuova_altezza, larghezza_nuova_porz, 50,
                                 self.gioco.GROUND1)
 
+        self.altezza_plant = - (nuova_altezza - ultima_porzione.y - 90)
+        if abs(- self.altezza_plant) > 250 and ultima_porzione.y > nuova_altezza:
+            self.genera_plant_per_porzione(nuova_porzione, self.altezza_plant)
         self.porzioni.append(nuova_porzione)
 
-        # Se questa è l'ultima porzione prima del portale di fine, non generare cristalli
         if len(self.porzioni) < self.num_porzione_per_portale:
             self.genera_cristallo_per_porzione(nuova_porzione)
         else:
-            # Qui potresti voler generare il portale di fine invece di un cristallo
             self.portale_fine = Portale(self.gioco, nuova_porzione.right + 50, nuova_porzione.top - 75,
                                         self.gioco.ultimo_colore_cristallo)
 
-        # Genera i coin tra le porzioni, se applicabile
-        if len(self.porzioni) > 1:
-            porzione_prec = self.porzioni[-2]  # La penultima porzione
-            porzione_succ = nuova_porzione  # L'ultima porzione appena aggiunta
+        # Genera i coin tra le porzioni solo se appropriato
+        if len(self.porzioni) > 1 and abs(nuova_porzione.top - ultima_porzione.top) < 100:
+            porzione_prec = self.porzioni[-2]
+            porzione_succ = nuova_porzione
             self.gioco.coin_manager.genera_coins_tra_terreni(porzione_prec, porzione_succ, False)
 
     def calcola_nuova_altezza(self):
@@ -98,6 +125,12 @@ class Terreno4:
 
         self.cristalli.add(cristallo)
 
+    def genera_plant_per_porzione(self, porzione, altezza_plant):
+        x = porzione.left  # Usa il lato sinistro del blocco per il posizionamento
+        y = porzione.top - Plant.position
+        self.plant = Plant(x, y, altezza_plant)
+        self.plants.add(self.plant)
+
     def aggiorna(self):
         # Muovi ogni porzione di terreno
         for porzione in self.porzioni:
@@ -106,6 +139,9 @@ class Terreno4:
         # Muovi ogni cristallo insieme al terreno
         for cristallo in self.cristalli:
             cristallo.rect.x += self.gioco.VELOCITA_TERRENO
+
+        for plant in self.plants:
+            plant.rect.x += self.gioco.VELOCITA_TERRENO
 
         # Muovi il portale di inizio insieme al terreno
         if self.portale_inizio:
@@ -132,5 +168,7 @@ class Terreno4:
             pygame.draw.rect(superficie, self.gioco.GROUND1, porzione)
         for cristallo in self.cristalli:
             cristallo.disegna(superficie)
+        for plant in self.plants:
+            plant.disegna(superficie)
         self.portale_inizio.disegna(superficie)
         self.portale_fine.disegna(superficie)

@@ -35,7 +35,7 @@ class Level:
         self.MAIN_COLOR = configurazione['Palette']['MAIN_COLOR']
 
         self.coin_manager = CoinManager(self, self.n_level)
-        self.giocatore = self.giocatore = Giocatore2(self, self) if self.n_level == 3 else Giocatore(self, self)
+        self.giocatore = Giocatore2(self, self) if self.n_level == 3 else Giocatore(self, self)
         self.ultimo_colore_cristallo = colore_iniziale  # Aggiungi questo
 
         self.terreno = self.scegli_terreno(n, colore_iniziale)
@@ -94,6 +94,9 @@ class Level:
             self.terreno.aggiorna()
             self.coin_manager.aggiorna()
             self.coin_manager.gestisci_collisioni(self.giocatore)
+            if self.n_level == 4:
+                if self.terreno.plant is not None:
+                    self.giocatore.verifica_collisione_con_plant()
 
             cristalli_toccati = pygame.sprite.spritecollide(self.giocatore, self.terreno.cristalli, True)
             for cristallo in cristalli_toccati:

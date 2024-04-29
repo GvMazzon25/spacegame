@@ -43,8 +43,6 @@ class Giocatore2(pygame.sprite.Sprite):
                 self.config.replace_score(self.livello.punteggio)
                 return caduta
 
-
-
     def verifica_collisione_con_terreno(self):
         # Movimento verso l'alto per verificare le collisioni, poiché la gravità è invertita
         if self.gravita == -1:
@@ -95,8 +93,6 @@ class Giocatore2(pygame.sprite.Sprite):
                                                   1)  # Assicurati che la velocità non sia mai 0 o negativa
                 return "continua"
 
-
-
     def salta(self):
         if self.salti_rimanenti > 0:
             if self.gravita == -1:
@@ -127,17 +123,52 @@ class Giocatore(pygame.sprite.Sprite):
         self.velocita_y = 1
         self.salti_rimanenti = 2
         self.config = Configurazione()
+        self.in_salita = False
+        self.posizione_originale_x = None
 
     def cambia_colore(self, nuovo_colore):
         self.colore_corrente = self.surf.fill(nuovo_colore)
         self.surf.fill(nuovo_colore)
 
-    def aggiorna(self):
-        self.velocita_y += 1  # Simula la gravità
-        self.rect.y += self.velocita_y  # Aggiorna la posizione verticale
+    def verifica_collisione_con_plant(self):
+        if self.livello.n_level == 4:
+            collisioni_plant = [plant for plant in self.livello.terreno.plants
+                                if plant.rect.colliderect(self.rect)]
+            if collisioni_plant:
+                plant = collisioni_plant[0]
+                height = plant.height  # Prendi la prima pianta con cui collidi
+                if not self.in_salita:  # Se non è già in salita
+                    self.in_salita = True
+                    self.posizione_originale_x = self.rect.x
+                    self.rect.x = plant.rect.x  # Allinea con la pianta
+                    self.velocita_y = -25  # Imposta la velocità di salita
+                # Aggiungi il controllo per fermare la salita all'altezza desiderata
+                target_height = plant.rect.y - (height)  # Calcola l'altezza target
+                if self.rect.y <= target_height:
+                    self.velocita_y = 0  # Ferma la salita
+                    self.in_salita = False  # Indica che la salita è terminata
 
-        # Verifica collisione con il terreno e aggiorna di conseguenza
-        self.verifica_collisione_con_terreno()
+    def aggiorna(self):
+        if not self.in_salita:
+            self.velocita_y += 1  # Simula la gravità
+            self.rect.y += self.velocita_y  # Aggiorna la posizione verticale
+            self.verifica_collisione_con_terreno()
+        else:
+            if self.rect.y > self.livello.terreno.plant.rect.top:
+                self.salta()
+                self.rect.y += self.velocita_y  # Continua a salire
+                self.rect.x += self.livello.VELOCITA_TERRENO
+            else:
+                self.velocita_y += 1
+                # Inizia il ritorno graduale alla posizione x originale
+                if self.rect.x != self.posizione_originale_x:
+                    # Interpola linearmente tra la posizione attuale e quella originale
+                    ritorno_velocita = 10  # Regola questo valore per cambiare la velocità del ritorno
+                    distanza = self.posizione_originale_x - self.rect.x
+                    passo = ritorno_velocita if abs(distanza) > ritorno_velocita else distanza
+                    self.rect.x += passo
+                else:
+                    self.in_salita = False  # Termina la salita
 
     def verifica_collisione_con_terreno(self):
         self.rect.y += 1  # Piccolo spostamento verso il basso per verificare le collisioni
